@@ -1,3 +1,3 @@
 # sammy
 
-C++ implementation of Meta's SAM
+Implementation of Meta's SAM, from scratch.
