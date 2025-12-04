@@ -1,22 +1,24 @@
 import torch
-from typing import Tuple
+from typing import Tuple, List
 import torch.nn.functional as F
 
-INPUT_DIMENSIONS = (1, 2)
-HIDDEN_DIMENSIONS = (2, 2)
-OUTPUT_DIMENSIONS = (2, 1)
+Gradients = Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]
 
 class RNN:
     def __init__(self):
         gen = torch.Generator().manual_seed(42)
-        self.InputWeights = torch.randn(INPUT_DIMENSIONS, generator=gen)
-        self.HiddenWeights = torch.randn(HIDDEN_DIMENSIONS, generator=gen)
-        self.OutputWeights = torch.randn(OUTPUT_DIMENSIONS, generator=gen)
-        self.HiddenBias = torch.randn(HIDDEN_DIMENSIONS[1], generator=gen)
-        self.OutputBias = torch.randn(OUTPUT_DIMENSIONS[1], generator=gen)
-        self.epochs = 5
+        self.INPUT_DIMENSIONS = (1, 2)
+        self.HIDDEN_DIMENSIONS = (2, 2)
+        self.OUTPUT_DIMENSIONS = (2, 1)
+        self.InputWeights = torch.randn(self.INPUT_DIMENSIONS, generator=gen)
+        self.HiddenWeights = torch.randn(self.HIDDEN_DIMENSIONS, generator=gen)
+        self.OutputWeights = torch.randn(self.OUTPUT_DIMENSIONS, generator=gen)
+        self.HiddenBias = torch.randn((1, self.HIDDEN_DIMENSIONS[1]), generator=gen)
+        self.OutputBias = torch.randn((1, self.OUTPUT_DIMENSIONS[1]), generator=gen)
+        self.epochs = 200
+        self.learning_rate = 1e-3
 
-    def forward_pass(self, X_seq: torch.tensor, Y: torch.tensor) -> Tuple[torch.tensor, torch.tensor]:
+    def forward_pass(self, X_seq: torch.tensor) -> Tuple[torch.tensor, torch.tensor]:
         previous_hidden = None
         hidden = torch.zeros((X_seq.shape[0], self.InputWeights.shape[1]))
         outputs = torch.zeros((X_seq.shape[0], self.OutputWeights.shape[1]))
@@ -28,7 +30,7 @@ class RNN:
 
             # Hidden layer
             if previous_hidden is None: 
-                Xh_t = F.relu(X_i)
+                Xh_t = X_i
             else:
                 X_h = previous_hidden @ self.HiddenWeights
                 Xh_t = F.tanh(X_i + X_h + self.HiddenBias)
@@ -37,56 +39,74 @@ class RNN:
             hidden[t, :] = Xh_t
             
             # Output layer
-            logit = Xh_t @ self.OutputWeights + self.OutputBias # Y_hat
+            logit = Xh_t @ self.OutputWeights + self.OutputBias 
             outputs[t, :] = logit 
-            # print(outputs)
         
         # Return the hidden state for grad descent, output of the RNN 
-        return hidden, outputs # was outputs[-1]
+        return hidden, outputs
 
-    def backward_pass(self, sequence, hidden, dy):
+    def backward_pass(self, sequence: torch.tensor, hidden: torch.tensor, dy: torch.tensor) -> Gradients:
         next_hidden = None
-        input_weight_grad, output_weight_grad, hidden_weight_grad, hidden_bias_grad, output_bias_grad = [0] * 5
+        dWx, dWy, dWh, dG, dB = [0] * 5
 
         for t in range(hidden.shape[0]-1, -1, -1):
-            output_bias_grad += dy # dL/dd 
-            output_weight_grad += (dy * hidden[t]) # dL/dWy
+            hidden_t = hidden[t, :].unsqueeze((0))
+
+            dB += dy # dL/dB
+            dWy += (hidden_t.T @ dy) # dL/dWy
             
-            print(f'W_y grad: {output_weight_grad}')
-            print(f'Output bias grad: {output_bias_grad}')
-            if next_hidden is not None:
-                h_grad = dy * self.OutputWeights.T + next_hidden
+            if next_hidden is None:
+                h_grad = dy @ self.OutputWeights.T # dy/dh(t)
             else:
-                h_grad = dy * self.OutputWeights.T 
-            # print(output_bias_grad.item())
-            tanh_grad = 1 - hidden[t]**2 # dh/dtanh
-            h_grad = h_grad * tanh_grad
+                h_grad = dy @ self.OutputWeights.T + next_hidden @ self.HiddenWeights.T 
+          
+            tanh_grad = 1 - hidden_t**2 #dtanh/dParams
+
+            h_grad = h_grad * tanh_grad # dh/dtanh 
             next_hidden = h_grad 
-
+            
+            previous_hidden = hidden[t-1].unsqueeze((0))
             if t > 0:
-                hidden_weight_grad += h_grad * hidden[t-1]
-            input_weight_grad += h_grad * sequence[t]
-            hidden_bias_grad += h_grad
-            print(f'W_h grad: {hidden_weight_grad}')
-            print(f'W_x grad: {input_weight_grad}')
-            print(f'Hidden bias grad: {hidden_bias_grad}')
-            print("------------------------------------------")
+                dWh += previous_hidden.T @ h_grad # dL/dWh
+                dG += h_grad # dL/dG
 
-            learning_rate = 1e-6
+            dWx += h_grad * sequence[t] # dL/dWx
 
-    def train(self, X: torch.tensor, Y: torch.tensor):
-        for _ in range(self.epochs): # e = number of epoch we are at
-            for index, sequence in enumerate(X[:self.epochs]):
-                hidden, y_pred = self.forward_pass(sequence, Y[index]) # y_pred is all outputs
+        return dWy, dB, dWh, dWx, dG
+    
+    def sgd_step(self, dWy: torch.tensor, dB: torch.tensor, dWh: torch.tensor, 
+                 dWx: torch.tensor, dG: torch.tensor, learning_rate: float)-> None:
+        self.InputWeights -= (learning_rate * dWx)
+        self.OutputWeights -= (learning_rate * dWy)
+        self.HiddenWeights -= (learning_rate * dWh)
+        self.HiddenBias -= (learning_rate * dG)
+        self.OutputBias -= (learning_rate * dB)
+    
+    def calculate_loss(self, X: torch.tensor, Y: torch.tensor) -> float:
+        _, outputs = self.forward_pass(X)
+        y_pred = outputs[-1]
+        loss = 1/2 * (y_pred - Y)**2
+        return loss.item()
+
+    def calculate_total_loss(self, X: torch.tensor, Y: torch.tensor) -> float:
+        loss = 0.0
+        for i in range(len(Y)):
+            loss += self.calculate_loss(X[i], Y[i])
+        return loss / float(len(Y))
+
+    def train(self, X: torch.tensor, Y: torch.tensor) -> List[float]:
+        losses = []
+        for e in range(self.epochs): # e = number of epoch we are at
+            epoch_loss = 0
+            for index, sequence in enumerate(X):
+                hidden, y_pred = self.forward_pass(sequence) # y_pred is all outputs
                 y_hat = y_pred[-1]
-                # print(f'sequence/index: {sequence}/{index}')
-                # print(f'index: {index}, y value: {Y[index]}')
-                # print(hidden)
-                # print("-")
 
                 loss = 1/2 * ((y_hat - Y[index]) ** 2) # Squared error 
-                # print(f'loss: {loss.item()}')
+                dy = (y_hat - Y[index]).view(1, 1) # dL/dy
+                epoch_loss += loss.item()
 
-                dy = (y_hat - Y[index]) # dL/dy
-
-                self.backward_pass(sequence, hidden, dy)
+                dWy, dB, dWh, dWx, dG = self.backward_pass(sequence, hidden, dy)
+                self.sgd_step(dWy, dB, dWh, dWx, dG, self.learning_rate)
+            print(f"epoch {e+1}, loss = {epoch_loss/len(X)}")
+        return losses
