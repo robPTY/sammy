@@ -45,6 +45,12 @@ class RNN:
         # Return the hidden state for grad descent, output of the RNN 
         return hidden, outputs
 
+    def predict(self, x: List[float]) -> float:
+        x = torch.tensor(x)
+        _, outputs = self.forward_pass(x)
+        y_hat = outputs[-1]
+        return y_hat.item()
+
     def backward_pass(self, sequence: torch.tensor, hidden: torch.tensor, dy: torch.tensor) -> Gradients:
         next_hidden = None
         dWx, dWy, dWh, dG, dB = [0] * 5
@@ -94,7 +100,8 @@ class RNN:
             loss += self.calculate_loss(X[i], Y[i])
         return loss / float(len(Y))
 
-    def train(self, X: torch.tensor, Y: torch.tensor) -> List[float]:
+    def train(self, X: torch.tensor, Y: torch.tensor, X_valid: torch.tensor,
+              Y_valid: torch.tensor) -> List[float]:
         losses = []
         for e in range(self.epochs): # e = number of epoch we are at
             epoch_loss = 0
@@ -108,5 +115,12 @@ class RNN:
 
                 dWy, dB, dWh, dWx, dG = self.backward_pass(sequence, hidden, dy)
                 self.sgd_step(dWy, dB, dWh, dWx, dG, self.learning_rate)
-            print(f"epoch {e+1}, loss = {epoch_loss/len(X)}")
+            
+            valid_loss = 0
+            for index, sequence in enumerate(X_valid):
+                _, outputs = self.forward_pass(sequence)
+                loss = 1/2 * ((outputs[-1] - Y_valid[index]) **2)
+                valid_loss += loss.item()
+
+            print(f"epoch {e+1}, train loss = {epoch_loss/len(X)}, valid loss = {valid_loss/len(X_valid)}")
         return losses
