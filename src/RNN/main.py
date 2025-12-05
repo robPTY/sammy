@@ -35,12 +35,19 @@ def main():
     network = RNN() 
     print(f'prediction before training: {network.predict([0.220833, 0.134783, 0.144348])}')
     network.train(X, Y, testX, testY)
-    print(f'prediction after training: {network.predict([0.220833, 0.134783, 0.144348])}')
-    print(f'correct value: 0.189091')
-    print(f'prediction after training: {network.predict([0.266087, 0.318261, 0.435833])}')
-    print(f'correct value: 0.521667')
-    print(f'prediction after training: {network.predict([0.399167, 0.285217, 0.303333])}')
-    print(f'correct value: 0.182222')
+    print(f'----------------------------------------------------------------------------')
+    seq1 = [0.220833, 0.134783, 0.144348]
+    seq2 = [0.266087, 0.318261, 0.435833]
+    seq3 = [0.399167, 0.285217, 0.303333]
+    print(f'Input sequence: {seq1}')
+    print(f'prediction after training: {network.predict(seq1)}')
+    print(f'true value: 0.189091')
+    print(f'Input sequence: {seq2}')
+    print(f'prediction after training: {network.predict(seq2)}')
+    print(f'true value: 0.521667')
+    print(f'Input sequence: {seq3}')
+    print(f'prediction after training: {network.predict(seq3)}')
+    print(f'true value: 0.182222')
 
 if __name__ == "__main__":
     main()

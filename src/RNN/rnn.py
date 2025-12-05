@@ -5,18 +5,18 @@ import torch.nn.functional as F
 Gradients = Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]
 
 class RNN:
-    def __init__(self):
+    def __init__(self, input_dims=1, hidden_dims=2, output_dims=1, epochs=200, learning_rate = 1e-3):
         gen = torch.Generator().manual_seed(42)
-        self.INPUT_DIMENSIONS = (1, 2)
-        self.HIDDEN_DIMENSIONS = (2, 2)
-        self.OUTPUT_DIMENSIONS = (2, 1)
-        self.InputWeights = torch.randn(self.INPUT_DIMENSIONS, generator=gen)
-        self.HiddenWeights = torch.randn(self.HIDDEN_DIMENSIONS, generator=gen)
-        self.OutputWeights = torch.randn(self.OUTPUT_DIMENSIONS, generator=gen)
-        self.HiddenBias = torch.randn((1, self.HIDDEN_DIMENSIONS[1]), generator=gen)
-        self.OutputBias = torch.randn((1, self.OUTPUT_DIMENSIONS[1]), generator=gen)
-        self.epochs = 200
-        self.learning_rate = 1e-3
+        self.INPUT_DIMS = input_dims
+        self.HIDDEN_DIMS = hidden_dims
+        self.OUTPUT_DIMS = output_dims
+        self.InputWeights = torch.randn((self.INPUT_DIMS, self.HIDDEN_DIMS), generator=gen)
+        self.HiddenWeights = torch.randn((self.HIDDEN_DIMS, self.HIDDEN_DIMS), generator=gen)
+        self.OutputWeights = torch.randn((self.HIDDEN_DIMS, self.OUTPUT_DIMS), generator=gen)
+        self.HiddenBias = torch.randn((1, self.HIDDEN_DIMS), generator=gen)
+        self.OutputBias = torch.randn((1, self.OUTPUT_DIMS), generator=gen)
+        self.epochs = epochs
+        self.learning_rate = learning_rate
 
     def forward_pass(self, X_seq: torch.tensor) -> Tuple[torch.tensor, torch.tensor]:
         previous_hidden = None
@@ -46,14 +46,15 @@ class RNN:
         return hidden, outputs
 
     def predict(self, x: List[float]) -> float:
-        x = torch.tensor(x)
+        x = torch.tensor(x, dtype=torch.float32)
         _, outputs = self.forward_pass(x)
-        y_hat = outputs[-1]
-        return y_hat.item()
+        return outputs[-1].item()
 
     def backward_pass(self, sequence: torch.tensor, hidden: torch.tensor, dy: torch.tensor) -> Gradients:
         next_hidden = None
-        dWx, dWy, dWh, dG, dB = [0] * 5
+        dWx, dWy = torch.zeros_like(self.InputWeights), torch.zeros_like(self.OutputWeights)
+        dWh, dG = torch.zeros_like(self.HiddenWeights), torch.zeros_like(self.HiddenBias)
+        dB = torch.zeros_like(self.OutputBias)
 
         for t in range(hidden.shape[0]-1, -1, -1):
             hidden_t = hidden[t, :].unsqueeze((0))
@@ -122,5 +123,7 @@ class RNN:
                 loss = 1/2 * ((outputs[-1] - Y_valid[index]) **2)
                 valid_loss += loss.item()
 
-            print(f"epoch {e+1}, train loss = {epoch_loss/len(X)}, valid loss = {valid_loss/len(X_valid)}")
+            train_average = epoch_loss/len(X)
+            losses.append(train_average)
+            print(f"epoch {e+1}, train loss = {train_average}, valid loss = {valid_loss/len(X_valid)}")
         return losses
