@@ -12,3 +12,12 @@ Full implementation of an RNN, using it as the starting point for the LSTM. The 
 - [x] Backward pass
 - [ ] Testing (manual gradients vs. autograd, loss vs. validation set)
 - [ ] Optimization of network (learning rate decay, expanding onto more layers, not pre-defining sequence length)
+
+## References
+
+Across this project, I've probably used countless resources, but the most important ones so far
+
+##### ML Concepts
+
+- [2003 Bengio et. al](https://jmlr.org/papers/volume3/bengio03a/bengio03a.pdf)
+- [CS231n Backpropagation Lecture](https://www.youtube.com/watch?v=i94OvYb6noo&list=WL&index=1)
