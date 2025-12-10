@@ -15,6 +15,8 @@ class AutoRNN(nn.Module):
         T = X_seq.shape[0]
 
         previous_hidden = None
+        hidden = torch.zeros((X_seq.shape[0], self.Wx.shape[1]))
+        outputs = torch.zeros((X_seq.shape[0], self.Wy.shape[1]))
         
         for t in range(T):
             x_t = X_seq[t].unsqueeze(0)
@@ -22,12 +24,15 @@ class AutoRNN(nn.Module):
             X_i = x_t @ self.Wx   
 
             if previous_hidden is None:
-                Xh_t = X_i
+                Xh_t = F.tanh(X_i + self.bh)
             else:
                 X_h = previous_hidden @ self.Wh
-                Xh_t = torch.tanh(X_i + X_h + self.bh)
-
+                Xh_t = F.tanh(X_i + X_h + self.bh)
+            
+            hidden[t, :] = Xh_t
             previous_hidden = Xh_t
 
-        logit = previous_hidden @ self.Wy + self.by
-        return logit
+            logit = Xh_t @ self.Wy + self.by 
+            outputs[t, :] = logit 
+
+        return hidden, outputs
