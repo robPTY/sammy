@@ -30,7 +30,7 @@ class RNN:
 
             # Hidden layer
             if previous_hidden is None: 
-                Xh_t = X_i
+                Xh_t = F.tanh(X_i + self.HiddenBias)
             else:
                 X_h = previous_hidden @ self.HiddenWeights
                 Xh_t = F.tanh(X_i + X_h + self.HiddenBias)
@@ -51,33 +51,34 @@ class RNN:
         return outputs[-1].item()
 
     def backward_pass(self, sequence: torch.tensor, hidden: torch.tensor, dy: torch.tensor) -> Gradients:
-        next_hidden = None
+        T = hidden.shape[0]
         dWx, dWy = torch.zeros_like(self.InputWeights), torch.zeros_like(self.OutputWeights)
         dWh, dG = torch.zeros_like(self.HiddenWeights), torch.zeros_like(self.HiddenBias)
         dB = torch.zeros_like(self.OutputBias)
 
-        for t in range(hidden.shape[0]-1, -1, -1):
-            hidden_t = hidden[t, :].unsqueeze((0))
+        hidden_t = hidden[T-1, :].unsqueeze((0))
 
-            dB += dy # dL/dB
-            dWy += (hidden_t.T @ dy) # dL/dWy
-            
-            if next_hidden is None:
-                h_grad = dy @ self.OutputWeights.T # dy/dh(t)
-            else:
-                h_grad = dy @ self.OutputWeights.T + next_hidden @ self.HiddenWeights.T 
-          
+        dB = dy # dL/dB
+        dWy = hidden_t.T @ dy # dL/dWy
+        h_grad = dy @ self.OutputWeights.T # dy/dh(t)
+
+        next_hgrad = h_grad
+
+        for t in range(hidden.shape[0]-1, -1, -1):   
+            hidden_t = hidden[t ,:].unsqueeze((0))     
+
             tanh_grad = 1 - hidden_t**2 #dtanh/dParams
+            h_grad = next_hgrad * tanh_grad # dh/dtanh 
 
-            h_grad = h_grad * tanh_grad # dh/dtanh 
-            next_hidden = h_grad 
+            dG += h_grad # dL/dG
+
+            dWx += sequence[t].view(1, -1).T @ h_grad # dL/dWx
             
-            previous_hidden = hidden[t-1].unsqueeze((0))
             if t > 0:
+                previous_hidden = hidden[t-1].unsqueeze((0))
                 dWh += previous_hidden.T @ h_grad # dL/dWh
-                dG += h_grad # dL/dG
 
-            dWx += h_grad * sequence[t] # dL/dWx
+            next_hgrad = h_grad @ self.HiddenWeights.T
 
         return dWy, dB, dWh, dWx, dG
     
