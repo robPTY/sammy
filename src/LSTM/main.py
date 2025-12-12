@@ -30,8 +30,10 @@ def load_data(seq_length: int):
 
 def main():
     SEQ_LENGTH = 5
+    INPUT_SIZE, HIDDEN_SIZE = 1, 5
+
     X, Y, testX, testY = load_data(SEQ_LENGTH)
-    network = LSTM()
+    network = LSTM(input_dims=INPUT_SIZE, hidden_dims=HIDDEN_SIZE)
     network.train(X)
     return 1
 

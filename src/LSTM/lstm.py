@@ -9,14 +9,15 @@ class LSTM:
     def forward(self, x_sequence: torch.tensor):
         T = len(x_sequence)
 
-        hiddens = torch.zeros(1, self.cell_dims)
+        prev_hidden = torch.zeros(1, self.cell_dims)
         cell_state = torch.zeros(1, self.cell_dims)
 
-        prev_hidden = None
         for t in range(T):
             xt = x_sequence[t].view((1, -1))
-            hidden, cell_state = self.cell.forward(prev_hidden, xt)
+            self.cell.forward(cell_state, prev_hidden, xt)
+        
+        return prev_hidden, cell_state
 
     def train(self, X: torch.tensor):
-        for index, x_sequence in enumerate(X):
+        for index, x_sequence in enumerate(X[:1]):
             self.forward(x_sequence)
