@@ -7,6 +7,9 @@ class Sigmoid:
 class Tanh:
     def forward(self, x: torch.tensor) -> torch.tensor:
         return (torch.exp(x) - torch.exp(-x))/ (torch.exp(x) + torch.exp(-x))
+
+    def backward(self, x):
+        pass 
     
 class h:
     def forward(self, x: torch.tensor) -> torch.tensor:
