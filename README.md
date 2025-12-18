@@ -17,6 +17,8 @@ Full implementation of an RNN, using it as the starting point for the LSTM. The 
 
 - [x] Forward pass
 - [ ] Backward pass
+- [ ] Testing (manual gradients vs. autograd, training loss vs. validation loss)
+- [ ] Seq2Seq 2014 Paper Implementation
 
 ## References
 
@@ -28,3 +30,4 @@ Across this project, I've probably used countless resources, but the most import
 - [CS231n Backpropagation Lecture](https://www.youtube.com/watch?v=i94OvYb6noo&list=WL&index=1)
 - [1997 Long Short-Term Memory](https://www.bioinf.jku.at/publications/older/2604.pdf)
 - [Understanding LSTM Networks](https://colah.github.io/posts/2015-08-Understanding-LSTMs/)
+- [2014 Sequence to Sequence Learning with Neural Networks](https://arxiv.org/pdf/1409.3215)
