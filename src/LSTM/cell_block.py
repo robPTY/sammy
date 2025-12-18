@@ -1,7 +1,7 @@
 import torch
 from gates import ForgetGate, InputGate, CandidateGate, OutputGate
 from activations import Tanh
-from typing import Tuple
+from typing import Tuple, List, Dict
 
 States = Tuple[torch.tensor, torch.tensor, torch.tensor, torch.tensor, 
                torch.tensor, torch.tensor, torch.tensor, torch.tensor]
@@ -13,21 +13,30 @@ class Cell:
         self.Wf = torch.randn((input_dims + hidden_dims, hidden_dims), generator=gen) * 0.1
         self.bf = torch.randn((1, hidden_dims), generator=gen)
         self.Ft = ForgetGate()
+        self.dWf = torch.zeros_like(self.Wf)
+        self.dbf = torch.zeros_like(self.bf)
         # Input gate
         self.Wi = torch.randn((input_dims + hidden_dims, hidden_dims), generator=gen) * 0.1
         self.bi = torch.randn((1, hidden_dims), generator=gen)
         self.It = InputGate()
+        self.dWi = torch.zeros_like(self.Wi)
+        self.dbi = torch.zeros_like(self.bi)
         # Candidate gate 
         self.Wc = torch.randn((input_dims + hidden_dims, hidden_dims), generator=gen) * 0.1
         self.bc = torch.randn((1, hidden_dims), generator=gen)
         self.Ct = CandidateGate()
+        self.dWc = torch.zeros_like(self.Wc)
+        self.dbc = torch.zeros_like(self.bc)
         # Output gate 
         self.Wo = torch.randn((input_dims + hidden_dims, hidden_dims), generator=gen) * 0.1
         self.bo = torch.randn((1, hidden_dims), generator=gen)
         self.Ot = OutputGate()
-        
+        self.dWo = torch.zeros_like(self.Wo)
+        self.dbo = torch.zeros_like(self.bo)
+        # Network output
         self.Wy = torch.randn((hidden_dims, output_dims), generator=gen) * 0.1
         self.by = torch.randn((1, output_dims), generator=gen)
+        self.dWy, self.dby = torch.zeros_like(self.Wy), torch.zeros_like(self.by)
 
     def forward(self, prev_ct: torch.tensor, prev_h: torch.tensor, x: torch.tensor) -> States:
         Xt = torch.cat((x, prev_h), dim=1)
@@ -50,24 +59,22 @@ class Cell:
 
         return Xt, ft, it, ct, ot, cell_state, ht, zt
 
-    def backward(self, Xt: torch.tensor, ot: torch.tensor, cell_state: torch.tensor, 
-                 hidden_state: torch.tensor, dZ: torch.tensor, xt: torch.tensor):
-        T = hidden_state.shape[1]
+    def backward(self, states_cache: List[Dict], dZ: torch.tensor):
+        # The cache is being accesed at time step t
+        Xt = states_cache["Xt"]
+        ft, it = states_cache["ft"], states_cache["it"]
+        ot, ct = states_cache["ot"], states_cache["candidate"]
+        prev_cst, cell_state = states_cache["prev_cst"], states_cache["cell_state"]
+        hidden_state = states_cache["prev_hidden"]
         tan = Tanh() 
-        dWf, dWi = torch.zeros_like(self.Wf), torch.zeros_like(self.Wi)
-        dWc, dWo = torch.zeros_like(self.Wc), torch.zeros_like(self.Wo)
-        dWy, dby = torch.zeros_like(self.Wy), torch.zeros_like(self.by)
-        dbo, dbc = torch.zeros_like(self.bo), torch.zeros_like(self.bc)
-        dbi, dbf = torch.zeros_like(self.bi), torch.zeros_like(self.bf)
 
-        dWy = dZ @ hidden_state # dZ/dWy
-        dby = dZ # dZ/dby
+        dZ = dZ.view(1, -1)  
+        self.dWy += hidden_state.T @ dZ # dZ/dWy
+        self.dby += dZ # dZ/dby
 
-        print(f'dWy: {dWy}')
-        print(f'dby: {dby}')
-        for t in range(T-1, -1, -1):
-            real_ot = ot * (1- ot)
-            dht = dZ @ self.Wy.T
+        real_ot = ot * (1 - ot) # dOt/dSigm
+        dht = dZ @ self.Wy.T # dz/dh(t)
+        dot = tan.forward(cell_state) # dh/dOt
             
-            dWo += dht * tan.forward(cell_state) * real_ot @ Xt # dL/dWo
-            print(f'dWo: {dWo}')
+        self.dWo += Xt.T @ dht * dot * real_ot  # dL/dWo
+        self.dbo += dht * dot * real_ot # dL/dbo

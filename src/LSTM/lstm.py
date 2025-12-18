@@ -1,20 +1,16 @@
 import torch
 from cell_block import Cell
+from typing import List, Dict
 
 class LSTM: 
     def __init__(self, input_dims, hidden_dims, output_dims):
         self.cell_dims = hidden_dims
         self.output_dims = output_dims
         self.cell = Cell(input_dims, hidden_dims, output_dims)
-        # self.Xt_hist = torch.zeros(T, input_dims + hidden_dims)
-        # self.ft_hist = torch.zeros(T, hidden_dims) 
-        # self.it_hist = torch.zeros(T, hidden_dims) 
-        # self.ct_hist = torch.zeros(T, hidden_dims)  
-        # self.ot_hist = torch.zeros(T, hidden_dims)  
-        # self.cell_hist = torch.zeros(T, hidden_dims) 
-        # self.h_hist = torch.zeros(T, hidden_dims)
+        self.states_cache = []
 
     def forward(self, x_sequence: torch.tensor):
+        self.states_cache = [] 
         T = x_sequence.shape[0]
 
         prev_hidden = torch.zeros(1, self.cell_dims)
@@ -26,16 +22,24 @@ class LSTM:
             Xt, ft, it, ct, ot, new_cell_state, hidden, zt = self.cell.forward(cell_state, prev_hidden, xt)
             z[t] = zt.squeeze(0)
             
-            # print(f'cell state at time {t}: {cell_state}')
-            # print(f'hidden_state at time {t}: {hidden}')
+            self.states_cache.append({
+                "Xt": Xt, "ft": ft, "it": it, "candidate": ct, "ot": ot,
+                "prev_cst": cell_state, "cell_state": new_cell_state,
+                "prev_hidden": prev_hidden
+            })
+
             prev_hidden = hidden
             cell_state = new_cell_state
-        
-        return Xt, ft, it, ct, ot, cell_state, prev_hidden, z
+
+        return z
     
-    def backward(self, Xt: torch.tensor,ot: torch.tensor, cell_state: torch.tensor, 
-                 hidden_state: torch.tensor, dZ: torch.tensor, x_sequence: torch.tensor):
-        self.cell.backward(Xt, ot, cell_state, hidden_state, dZ, x_sequence)
+    def backward(self, dZ: torch.tensor, x_sequence: torch.tensor) -> None:
+        T = x_sequence.shape[0]
+        next_dht = torch.zeros(1, self.cell_dims) # dL/dHt+1
+        next_dcst = torch.zeros(1, self.cell_dims) # dL/dCst+1
+
+        for t in range(T-1, -1, -1):
+            self.cell.backward(self.states_cache[t], dZ[t])
     
     def calculate_loss(self, Y_pred: torch.tensor, Y_true: torch.tensor) -> torch.tensor:
         N = Y_pred.numel()
@@ -43,7 +47,7 @@ class LSTM:
 
     def train(self, X: torch.tensor, Y: torch.tensor):
         for index, x_sequence in enumerate(X[:1]):
-            Xt, ft, it, ct, ot, cell_state, prev_hidden, y_pred = self.forward(x_sequence)
+            y_pred = self.forward(x_sequence)
             y_true = Y[index].view(-1, 1)
 
             # print(x_sequence)
@@ -53,4 +57,5 @@ class LSTM:
             dZ = (2/y_pred.numel() * (y_pred - y_true))
             loss = self.calculate_loss(y_pred, y_true)
             print(f'loss: {loss.item()}')
-            self.backward(Xt, ot, cell_state, prev_hidden, dZ, x_sequence)
+
+            self.backward(dZ, x_sequence)
