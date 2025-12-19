@@ -16,9 +16,13 @@ Full implementation of an RNN, using it as the starting point for the LSTM. The 
 ### LSTM
 
 - [x] Forward pass
-- [ ] Backward pass
+- [x] Backward pass
 - [ ] Testing (manual gradients vs. autograd, training loss vs. validation loss)
 - [ ] Seq2Seq 2014 Paper Implementation
+
+### Transformer
+
+Full implementation of 2017 Vaswani et al paper. Using this as the starting point for sammy, the ViT.
 
 ## References
 
