@@ -8,9 +8,6 @@ class Tanh:
     def forward(self, x: torch.tensor) -> torch.tensor:
         return (torch.exp(x) - torch.exp(-x))/ (torch.exp(x) + torch.exp(-x))
 
-    def backward(self, x):
-        pass 
-    
 class h:
     def forward(self, x: torch.tensor) -> torch.tensor:
         return (2.0 / (1.0 + torch.exp(-x))) - 1.0

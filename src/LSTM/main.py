@@ -25,16 +25,28 @@ def load_data(seq_length: int, pred_length: int):
 
     testX = Xs[train_size:]
     testY = Ys[train_size:]
+    
+    # Normalize inputs
+    mean = X.mean()
+    standard_deviation = X.std()
 
-    return X, Y, testX, testY
+    X_train = (X - mean) / standard_deviation
+    Y_train = (Y - mean) / standard_deviation
+
+    X_test = (testX - mean) / standard_deviation
+    Y_test = (testY - mean) / standard_deviation   
+    
+    return X_train, Y_train, X_test, Y_test
 
 def main():
     SEQ_LENGTH, PRED_LENGTH = 5, 5
     INPUT_SIZE, HIDDEN_SIZE = 1, 5
     OUTPUT_SIZE = 1
+    LEARNING_RATE = 0.001
 
     X, Y, testX, testY = load_data(SEQ_LENGTH, PRED_LENGTH)
-    network = LSTM(input_dims=INPUT_SIZE, hidden_dims=HIDDEN_SIZE, output_dims=OUTPUT_SIZE)
+    network = LSTM(input_dims=INPUT_SIZE, hidden_dims=HIDDEN_SIZE, 
+                   output_dims=OUTPUT_SIZE, learning_rate=LEARNING_RATE)
     network.train(X, Y)
     return 1
 
