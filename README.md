@@ -15,9 +15,11 @@ Full implementation of an RNN, using it as the starting point for the LSTM. The 
 
 ### LSTM
 
+Implemented 1997 Hochreiter LSTM to predict a an n-length sequence of sun spots given an n-length input sequence. Since the results are hard to visualize, I also will implement Seq2Seq for translation between English and Spanish (since I can properly verify this).
+
 - [x] Forward pass
 - [x] Backward pass
-- [ ] Testing (manual gradients vs. autograd, training loss vs. validation loss)
+- [x] Testing (manual gradients vs. autograd, training loss vs. validation loss)
 - [ ] Seq2Seq 2014 Paper Implementation
 
 ### Transformer
