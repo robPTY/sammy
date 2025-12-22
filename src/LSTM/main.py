@@ -36,18 +36,48 @@ def load_data(seq_length: int, pred_length: int):
     X_test = (testX - mean) / standard_deviation
     Y_test = (testY - mean) / standard_deviation   
     
-    return X_train, Y_train, X_test, Y_test
+    return X_train, Y_train, X_test, Y_test, mean, standard_deviation
 
 def main():
     SEQ_LENGTH, PRED_LENGTH = 5, 5
     INPUT_SIZE, HIDDEN_SIZE = 1, 5
     OUTPUT_SIZE = 1
-    LEARNING_RATE = 0.001
+    LEARNING_RATE, EPOCHS = 0.01, 75
+    CURR_VERSION = 3
 
-    X, Y, testX, testY = load_data(SEQ_LENGTH, PRED_LENGTH)
+    X, Y, testX, testY, mean, std = load_data(SEQ_LENGTH, PRED_LENGTH)
     network = LSTM(input_dims=INPUT_SIZE, hidden_dims=HIDDEN_SIZE, 
-                   output_dims=OUTPUT_SIZE, learning_rate=LEARNING_RATE)
-    network.train(X, Y)
+                   output_dims=OUTPUT_SIZE, learning_rate=LEARNING_RATE,
+                   epochs=EPOCHS, curr_version=CURR_VERSION)
+    
+    # Train model
+    network.train(X, Y, testX, testY)
+
+    # Save weights of most recently trained
+    network.save_weights(f'weights/lstm_v{CURR_VERSION}.pt')
+
+    print("\n" + "=" * 50)
+    print("SUNSPOT PREDICTIONS")
+    print("=" * 50)
+
+    # Show 3 example sequences
+    for i in [0, 50, 100]:
+        x_sample = X[i]
+        y_actual = Y[i]
+        y_pred = network.sample(x_sample)
+
+        # Un-normalize vals to get real temps
+        x_real = (x_sample * std + mean).tolist()
+        y_actual_real = (y_actual * std + mean).tolist()
+        y_pred_real = (y_pred.squeeze() * std + mean).tolist()
+
+        print(f"\nExample {i + 1}:")
+        print(f"  Input:      {[f'{v:.1f}' for v in x_real]}")
+        print(f"  Actual:     {[f'{v:.1f}' for v in y_actual_real]}")
+        print(f"  Predicted:  {[f'{v:.1f}' for v in y_pred_real]}")
+
+    print("\n" + "=" * 50)
+    
     return 1
 
 if __name__ == "__main__":

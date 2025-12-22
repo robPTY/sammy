@@ -129,3 +129,24 @@ class Cell:
         self.bi -= learning_rate * self.dbi
         self.Wc -= learning_rate * self.dWc
         self.bc -= learning_rate * self.dbc
+
+    def get_state(self) -> Dict[str, torch.Tensor]:
+        return {
+            "Wf": self.Wf, "bf": self.bf,
+            "Wi": self.Wi, "bi": self.bi,
+            "Wc": self.Wc, "bc": self.bc,
+            "Wo": self.Wo, "bo": self.bo,
+            "Wy": self.Wy, "by": self.by,
+        }
+
+    def load_state(self, state: Dict[str, torch.Tensor]) -> None:
+        self.Wf = state["Wf"]
+        self.bf = state["bf"]
+        self.Wi = state["Wi"]
+        self.bi = state["bi"]
+        self.Wc = state["Wc"]
+        self.bc = state["bc"]
+        self.Wo = state["Wo"]
+        self.bo = state["bo"]
+        self.Wy = state["Wy"]
+        self.by = state["by"]
