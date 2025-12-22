@@ -1,14 +1,17 @@
 import torch
 from cell_block import Cell
-from typing import List, Dict
+from typing import List
 
 class LSTM: 
-    def __init__(self, input_dims, hidden_dims, output_dims, learning_rate):
+    def __init__(self, input_dims: int, hidden_dims: int, output_dims: int, 
+                 learning_rate: float, epochs: int, curr_version: int):
         self.cell_dims = hidden_dims
         self.output_dims = output_dims
         self.cell = Cell(input_dims, hidden_dims, output_dims)
         self.states_cache = []
         self.learning_rate = learning_rate
+        self.epochs = epochs
+        self.version = curr_version
 
     def forward(self, x_sequence: torch.tensor):
         self.states_cache = [] 
@@ -52,21 +55,44 @@ class LSTM:
     def calculate_loss(self, Y_pred: torch.tensor, Y_true: torch.tensor) -> torch.tensor:
         N = Y_pred.numel()
         return torch.sum((Y_true - Y_pred)**2) / N
+    
+    def save_weights(self, path: str) -> None:
+        torch.save(self.cell.get_state(), path)
 
-    def train(self, X: torch.tensor, Y: torch.tensor):
-        for index, x_sequence in enumerate(X[:50]):
-            y_pred = self.forward(x_sequence)
-            y_true = Y[index].view(-1, 1)
+    def sample(self, x_sequence: torch.tensor) -> torch.tensor:
+        weights = torch.load(f"weights/lstm_v{self.version}.pt")
+        # Update dimensions to match loaded weights
+        self.cell_dims = weights["Wf"].shape[1]  # hidden_dims
+        self.output_dims = weights["Wy"].shape[1]  # output_dims
+        self.cell.input_dims = weights["Wf"].shape[0] - self.cell_dims  # input_dims
+        self.cell.load_state(weights)
+        prediction = self.forward(x_sequence)
+        return prediction
 
-            # print(x_sequence)
-            # print(y_true)
-            # print(y_pred)
+    def train(self, X: torch.tensor, Y: torch.tensor, testX: torch.tensor, 
+              testY: torch.tensor) -> List[float]:
+        losses = [] 
+        for e in range(self.epochs):
+            epoch_loss = 0.0 
+            for index, x_sequence in enumerate(X):
+                y_pred = self.forward(x_sequence)
+                y_true = Y[index].view(-1, 1)
 
-            dZ = (2/y_pred.numel() * (y_pred - y_true))
-            loss = self.calculate_loss(y_pred, y_true)
-            print(f'loss: {loss.item()}')
+                dZ = (2/y_pred.numel() * (y_pred - y_true))
+                epoch_loss += self.calculate_loss(y_pred, y_true)
 
-            # Zero out gradients before each backward pass
-            self.cell.zero_grad()
-            self.backward(dZ, x_sequence)
-            self.sgd_step()
+                # Zero out gradients before each backward pass
+                self.cell.zero_grad()
+                self.backward(dZ, x_sequence)
+                self.sgd_step()
+
+            valid_loss = 0
+            for index, sequence in enumerate(testX):
+                y_pred = self.forward(sequence)
+                y_true = testY[index].view(-1, 1)
+                valid_loss += self.calculate_loss(y_pred, y_true).item()
+            valid_avg = valid_loss / len(testX)
+
+            train_avg = epoch_loss / len(X)
+            losses.append(train_avg.item())
+            print(f'Epoch {e+1}, Train Loss: {train_avg.item()}, Test Loss: {valid_avg}')
