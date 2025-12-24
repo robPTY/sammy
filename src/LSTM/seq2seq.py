@@ -13,12 +13,9 @@ def load_dataset(path: str) -> Sets:
     Xs = df["english"]
     Ys = df["spanish"]
 
-    Xs = torch.tensor(Xs)
-    Ys = torch.tensor(Ys)
-
     # 80, 20 split
     vocab_size = Xs.shape[0]
-    train_size = vocab_size * 0.80
+    train_size = int(vocab_size * 0.80)
 
     X_train = Xs[:train_size]
     Y_train = Ys[:train_size]
@@ -32,7 +29,7 @@ def main():
     X_train, Y_train, X_test, Y_test = load_dataset(file_path)
     
     # Tokenize the inputs
-    tokenizer = Tokenizer()
+    tokenizer = Tokenizer(vocab_size=500)
     tokenizer.tokenize(X_train)
 
     return 1
