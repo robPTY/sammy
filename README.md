@@ -20,11 +20,16 @@ Implemented 1997 Hochreiter LSTM to predict a an n-length sequence of sun spots 
 - [x] Forward pass
 - [x] Backward pass
 - [x] Testing (manual gradients vs. autograd, training loss vs. validation loss)
-- [ ] Seq2Seq 2014 Paper Implementation
+- [ ] Seq2Seq 2014 Paper Implementation (corpora size of 142,928 words)
 
 ### Transformer
 
 Full implementation of 2017 Vaswani et al paper. Using this as the starting point for sammy, the ViT.
+
+- [ ] Tokenizer
+- [ ] Attention
+- [ ] Forward Pass
+- [ ] Backward Pass
 
 ## References
 
@@ -37,3 +42,4 @@ Across this project, I've probably used countless resources, but the most import
 - [1997 Long Short-Term Memory](https://www.bioinf.jku.at/publications/older/2604.pdf)
 - [Understanding LSTM Networks](https://colah.github.io/posts/2015-08-Understanding-LSTMs/)
 - [2014 Sequence to Sequence Learning with Neural Networks](https://arxiv.org/pdf/1409.3215)
+- [Let's Build the GPT Tokenizer](https://www.youtube.com/watch?v=zduSFxRajkE)
