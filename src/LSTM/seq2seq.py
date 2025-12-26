@@ -29,8 +29,10 @@ def main():
     X_train, Y_train, X_test, Y_test = load_dataset(file_path)
     
     # Tokenize the inputs
-    tokenizer = Tokenizer(vocab_size=500)
-    tokenizer.tokenize(X_train)
+    tokenizer = Tokenizer(vocab_size=20)
+    tokens = tokenizer.tokenize(X_train[30:50])
+    print(f'tokens: {tokenizer.tokens[:7]}')
+    print(tokenizer.decode(tokenizer.tokens[:7]))
 
     return 1
 

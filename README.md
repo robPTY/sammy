@@ -26,6 +26,11 @@ Implemented 1997 Hochreiter LSTM to predict a an n-length sequence of sun spots 
 
 Full implementation of 2017 Vaswani et al paper. Using this as the starting point for sammy, the ViT.
 
+- [ ] Tokenizer
+- [ ] Attention
+- [ ] Forward Pass
+- [ ] Backward Pass
+
 ## References
 
 Across this project, I've probably used countless resources, but the most important ones so far
