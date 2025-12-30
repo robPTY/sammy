@@ -66,4 +66,11 @@ class Tokenizer:
         return text
     
     def encode(self, text: str) -> List[int]:
-        tokens = list(text.encode('utf-8'))
+        tokens = [self.SOS]
+        tokens.extend(list(text.encode('utf-8')))
+        tokens.append(self.EOS)
+        
+        for pair, new_index in self.merges.items():
+            tokens = self.merge(tokens, pair, new_index)
+        
+        return tokens
