@@ -2,6 +2,8 @@ import torch
 import pandas as pd
 from typing import Tuple
 from tokenizer import Tokenizer
+from encoder import Encoder
+from decoder import Decoder
 
 Sets = Tuple[torch.tensor, torch.tensor, torch.tensor, torch.tensor]
 
@@ -25,14 +27,33 @@ def load_dataset(path: str) -> Sets:
     return X_train, Y_train, X_test, Y_test
 
 def main():
+    VOCAB_SIZE = 300
     file_path = "data/eng_to_spa.txt"
     X_train, Y_train, X_test, Y_test = load_dataset(file_path)
     
-    # Tokenize the inputs
-    tokenizer = Tokenizer(vocab_size=20)
-    tokens = tokenizer.tokenize(X_train[30:50])
-    print(f'tokens: {tokenizer.tokens[:7]}')
-    print(tokenizer.decode(tokenizer.tokens[:7]))
+    print('Training tokenizer on corpora...')
+    tokenizer = Tokenizer(vocab_size=VOCAB_SIZE)
+    tokenized_tokens = tokenizer.tokenize(X_train[:1000])
+    print(f'Learned {len(tokenizer.merges)} BPE merges')
+
+    encoder = Encoder(vocab_size = VOCAB_SIZE + 2, embedding_dim = 64, hidden_dim = 128)
+    decoder = Decoder(vocab_size = VOCAB_SIZE + 2, embedding_dim = 64, hidden_dim = 128)
+
+    num_examples = 10
+    
+    for i in range(50, 50 + num_examples):
+        english = X_train.iloc[i]
+        spanish = Y_train.iloc[i]
+
+        source_tokens = tokenizer.encode(english)
+        target_tokens = tokenizer.encode(spanish)
+
+        # Encode
+        hidden, cell = encoder.encode(source_tokens)
+        # Decode
+        logits = decoder.forward(hidden, target_tokens, cell)
+    
+        predicted_tokens = torch.argmax(logits, dim=-1).tolist()
 
     return 1
 
