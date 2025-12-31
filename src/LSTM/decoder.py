@@ -54,6 +54,13 @@ class Decoder:
             })
             
         return torch.cat(logits, dim=0)
+    
+    def backward(self, d_logits: torch.tensor):
+        d_hidden_next = torch.zeros(1, self.hidden_dim)
+        d_cell_next = torch.zeros(1, self.hidden_dim)
+
+        self.dW_out += d_logits 
+        self.db_out += d_logits
 
     def generate(self, encoder_hidden: torch.tensor, encoder_cell: torch.tensor,
                  sos_token: int, eos_token: int, max_length: int = 50) -> List[int]:
@@ -71,6 +78,6 @@ class Decoder:
             output.append(next_token)
             if next_token == eos_token:
                 break
-            curr_token = next_token  # Fixed: was "current_token"
+            curr_token = next_token
         
         return output

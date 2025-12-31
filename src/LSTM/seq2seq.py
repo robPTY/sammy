@@ -1,6 +1,6 @@
 import torch
 import pandas as pd
-from typing import Tuple
+from typing import Tuple, List
 from tokenizer import Tokenizer
 from encoder import Encoder
 from decoder import Decoder
@@ -25,6 +25,27 @@ def load_dataset(path: str) -> Sets:
     Y_test = Ys[train_size:]
 
     return X_train, Y_train, X_test, Y_test
+
+def cross_entropy_loss(logits: torch.tensor, target_tokens: List[int]) -> Tuple[float, torch.tensor]:
+    T = len(target_tokens) - 1
+    d_logits = torch.zeros_like(logits)
+    total_loss = 0.0
+
+    for t in range(T):
+        logit = logits[t]
+        exp_logit = torch.exp(logit - torch.max(logit))
+        probs = exp_logit / torch.sum(exp_logit)
+
+        target_token = target_tokens[t+1]
+        total_loss += -torch.log(probs[target_token] + 1e-9).item()
+
+        d_logits[t] = probs
+        d_logits[t][target_token] -= 1
+      
+    avg_loss = total_loss / T
+    d_logits = d_logits / T 
+    
+    return avg_loss, d_logits
 
 def main():
     VOCAB_SIZE = 300
@@ -52,8 +73,11 @@ def main():
         hidden, cell = encoder.encode(source_tokens)
         # Decode
         logits = decoder.forward(hidden, target_tokens, cell)
-    
-        predicted_tokens = torch.argmax(logits, dim=-1).tolist()
+        
+        # Compute loss and gradient
+        loss, d_logits = cross_entropy_loss(decoder, logits, target_tokens)
+        
+        print(f'Example {i}: loss = {loss:.4f}')
 
     return 1
 
