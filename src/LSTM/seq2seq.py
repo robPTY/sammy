@@ -60,27 +60,59 @@ def main():
     encoder = Encoder(vocab_size = VOCAB_SIZE + 2, embedding_dim = 64, hidden_dim = 128)
     decoder = Decoder(vocab_size = VOCAB_SIZE + 2, embedding_dim = 64, hidden_dim = 128)
 
-    num_examples = 10
+    NUM_EPOCHS = 50
+    LEARNING_RATE = 0.01
     
-    for i in range(50, 50 + num_examples):
-        english = X_train.iloc[i]
-        spanish = Y_train.iloc[i]
-
-        source_tokens = tokenizer.encode(english)
-        target_tokens = tokenizer.encode(spanish)
-
-        # Encode
-        hidden, cell = encoder.encode(source_tokens)
-        # Decode
-        logits = decoder.forward(hidden, target_tokens, cell)
+    for epoch in range(NUM_EPOCHS):
+        epoch_loss = 0.0
         
-        # Compute loss and gradient
-        loss, d_logits = cross_entropy_loss(logits, target_tokens)
+        for i in range(len(X_train[:25000])):
+            english = X_train.iloc[i]
+            spanish = Y_train.iloc[i]
 
-        print(f'loss at example {i} is {loss}')
-        print(f'starting backward pass on decoder...')
-        dcell_state, dhidden_state = decoder.backward(d_logits)
-        print(f'dcell_state: {dcell_state}')
+            # Tokenize input
+            source_tokens = tokenizer.encode(english)
+            target_tokens = tokenizer.encode(spanish)
+
+            # Forward pass
+            hidden, cell = encoder.encode(source_tokens)
+            logits = decoder.forward(hidden, target_tokens, cell)
+            
+            # Compute loss and gradient
+            loss, d_logits = cross_entropy_loss(logits, target_tokens)
+            epoch_loss += loss
+            
+            # Backward passes
+            encoder.zero_grad()
+            dcell_state, dhidden_state = decoder.backward(d_logits)
+            encoder.backward(dhidden_state, dcell_state)
+
+            # SGD step
+            encoder.sgd_step(LEARNING_RATE)
+            decoder.sgd_step(LEARNING_RATE)
+        
+        avg_loss = epoch_loss / NUM_EPOCHS
+        print(f'Epoch {epoch+1}/{NUM_EPOCHS}: avg_loss = {avg_loss:.4f}')
+
+    print("\n--- Generation Test ---")
+    for i in range(150, 155):
+        english = X_train.iloc[i]
+        spanish_actual = Y_train.iloc[i]
+        source_tokens = tokenizer.encode(english)
+        hidden, cell = encoder.encode(source_tokens)
+        
+        # Generate
+        generated_tokens = decoder.generate(
+            hidden, cell,
+            sos_token=tokenizer.SOS,
+            eos_token=tokenizer.EOS,
+            max_length=30
+        )
+        generated_text = tokenizer.decode(generated_tokens)
+        
+        print(f'\nEnglish: {english}')
+        print(f'Actual:  {spanish_actual}')
+        print(f'Generated: {generated_text}')
 
     return 1
 
