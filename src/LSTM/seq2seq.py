@@ -75,9 +75,12 @@ def main():
         logits = decoder.forward(hidden, target_tokens, cell)
         
         # Compute loss and gradient
-        loss, d_logits = cross_entropy_loss(decoder, logits, target_tokens)
-        
-        print(f'Example {i}: loss = {loss:.4f}')
+        loss, d_logits = cross_entropy_loss(logits, target_tokens)
+
+        print(f'loss at example {i} is {loss}')
+        print(f'starting backward pass on decoder...')
+        dcell_state, dhidden_state = decoder.backward(d_logits)
+        print(f'dcell_state: {dcell_state}')
 
     return 1
 
