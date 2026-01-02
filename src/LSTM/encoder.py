@@ -10,7 +10,6 @@ class Encoder:
         self.embedding = torch.randn(vocab_size, embedding_dim) * 0.1
         self.LSTM = LSTM(input_dims=embedding_dim, hidden_dims=hidden_dim,
         output_dims=hidden_dim, learning_rate=0.01, epochs=50, curr_version=1)
-        
     
     def encode(self, tokens: List[int]) -> Tuple[torch.tensor, torch.tensor]:
         tokens_tensor = torch.tensor(tokens)
@@ -23,3 +22,8 @@ class Encoder:
 
         return final_hidden, final_cell_state
         
+    def backward(self, dhidden: torch.tensor, dcell: torch.tensor) -> None:
+        T = 11 
+        next_dhidden, next_dcell = dhidden, dcell
+        for t in range(T-1, -1, -1):
+            pass
