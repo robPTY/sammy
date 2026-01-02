@@ -6,7 +6,7 @@ class Decoder:
     def __init__(self, vocab_size: int, embedding_dim: int, hidden_dim: int):
         self.vocab_size = vocab_size
         self.hidden_dim = hidden_dim
-        self.embedding_didm = embedding_dim
+        self.embedding_dim = embedding_dim
         self.embedding = torch.randn(vocab_size, embedding_dim) * 0.1
         self.dEmbeddings = torch.zeros_like(self.embedding)
         self.LSTM_cell = S2SCell(input_dims = embedding_dim, hidden_dims = hidden_dim,
@@ -18,7 +18,7 @@ class Decoder:
         self.db_out = torch.zeros_like(self.b_out)
         self.states_cache = [] 
     
-    def softmax(self, x: torch.Tensor) -> torch.Tensor:
+    def softmax(self, x: torch.Tensor) -> torch.tensor:
         exp_x = torch.exp(x - torch.max(x, dim=-1, keepdim=True).values)
         return exp_x / torch.sum(exp_x, dim=-1, keepdim=True)
     
@@ -39,7 +39,7 @@ class Decoder:
         return logits, new_hidden, new_cell, cache_entry
     
     def forward(self, encoder_hidden: torch.tensor, target_tokens: List[int],
-                encoder_cell: torch.tensor):
+                encoder_cell: torch.tensor) -> torch.tensor:
         self.states_cache = []
         T = len(target_tokens)
 
@@ -58,7 +58,7 @@ class Decoder:
             
         return torch.cat(logits, dim=0)
     
-    def backward(self, d_logits: torch.tensor):
+    def backward(self, d_logits: torch.tensor) -> Tuple[torch.tensor, torch.tensor]:
         T = len(self.states_cache)
         d_hidden_next = torch.zeros(1, self.hidden_dim)
         d_cell_next = torch.zeros(1, self.hidden_dim)
@@ -108,8 +108,14 @@ class Decoder:
         
         return output
     
-    def zero_grad(self):
+    def zero_grad(self) -> None:
         self.dW_out.zero_()
         self.db_out.zero_()
         self.dEmbeddings.zero_()
         self.LSTM_cell.zero_grad()
+
+    def sgd_step(self, learning_rate: float) -> None:
+        self.W_out -= learning_rate * self.dW_out
+        self.b_out -= learning_rate * self.db_out
+        self.embedding -= learning_rate * self.dEmbeddings
+        self.LSTM_cell.sgd_step(learning_rate)
