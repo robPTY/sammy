@@ -20,7 +20,7 @@ Implemented 1997 Hochreiter LSTM to predict a an n-length sequence of sun spots 
 - [x] Forward pass
 - [x] Backward pass
 - [x] Testing (manual gradients vs. autograd, training loss vs. validation loss)
-- [ ] Seq2Seq 2014 Paper Implementation (corpora size of 142,928 words)
+- [x] Seq2Seq 2014 Paper Implementation (corpora size of 142,928 words)
 
 ### Transformer
 
