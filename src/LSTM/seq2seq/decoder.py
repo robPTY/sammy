@@ -1,6 +1,6 @@
 import torch
 from typing import List, Tuple
-from seq2seqcell import S2SCell
+from LSTM.seq2seq.seq2seqcell import S2SCell
 
 class Decoder:
     def __init__(self, vocab_size: int, embedding_dim: int, hidden_dim: int):
@@ -119,3 +119,18 @@ class Decoder:
         self.b_out -= learning_rate * self.db_out
         self.embedding -= learning_rate * self.dEmbeddings
         self.LSTM_cell.sgd_step(learning_rate)
+
+    def save_weights(self, path: str) -> None:
+        torch.save({
+            'embedding': self.embedding,
+            'lstm': self.LSTM_cell.get_state(),
+            'W_out': self.W_out,
+            'b_out': self.b_out,
+        }, path)
+
+    def load_weights(self, path: str) -> None:
+        state = torch.load(path)
+        self.embedding = state['embedding']
+        self.LSTM_cell.load_state(state['lstm'])
+        self.W_out = state['W_out']
+        self.b_out = state['b_out']

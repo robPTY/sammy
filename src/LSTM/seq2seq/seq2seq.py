@@ -1,9 +1,9 @@
 import torch
 import pandas as pd
 from typing import Tuple, List
-from tokenizer import Tokenizer
-from encoder import Encoder
-from decoder import Decoder
+from LSTM.seq2seq.tokenizer import Tokenizer
+from LSTM.seq2seq.encoder import Encoder
+from LSTM.seq2seq.decoder import Decoder
 
 Sets = Tuple[torch.tensor, torch.tensor, torch.tensor, torch.tensor]
 
@@ -54,7 +54,7 @@ def main():
     
     print('Training tokenizer on corpora...')
     tokenizer = Tokenizer(vocab_size=VOCAB_SIZE)
-    tokenized_tokens = tokenizer.tokenize(X_train[:1000])
+    tokenized_tokens = tokenizer.tokenize(X_train[:5000])
     print(f'Learned {len(tokenizer.merges)} BPE merges')
 
     encoder = Encoder(vocab_size = VOCAB_SIZE + 2, embedding_dim = 64, hidden_dim = 128)
@@ -62,11 +62,13 @@ def main():
 
     NUM_EPOCHS = 50
     LEARNING_RATE = 0.01
+    NUM_TRAIN = len(X_train)
+    NUM_VAL = min(500, len(X_test))
     
     for epoch in range(NUM_EPOCHS):
         epoch_loss = 0.0
         
-        for i in range(len(X_train[:25000])):
+        for i in range(NUM_TRAIN):
             english = X_train.iloc[i]
             spanish = Y_train.iloc[i]
 
@@ -91,11 +93,31 @@ def main():
             encoder.sgd_step(LEARNING_RATE)
             decoder.sgd_step(LEARNING_RATE)
         
-        avg_loss = epoch_loss / NUM_EPOCHS
-        print(f'Epoch {epoch+1}/{NUM_EPOCHS}: avg_loss = {avg_loss:.4f}')
+        train_loss = epoch_loss / NUM_TRAIN
+        val_loss = 0.0
+        for i in range(NUM_VAL):
+            english = X_test.iloc[i]
+            spanish = Y_test.iloc[i]
+            
+            source_tokens = tokenizer.encode(english)
+            target_tokens = tokenizer.encode(spanish)
+            
+            hidden, cell = encoder.encode(source_tokens)
+            logits = decoder.forward(hidden, target_tokens, cell)
+            
+            loss, _ = cross_entropy_loss(logits, target_tokens)
+            val_loss += loss
+        
+        val_loss = val_loss / NUM_VAL
+        
+        print(f'Epoch {epoch+1}/{NUM_EPOCHS}: train_loss = {train_loss:.4f}, val_loss = {val_loss:.4f}')
+
+    encoder.save_weights('weights/encoder_final.pt')
+    decoder.save_weights('weights/decoder_final.pt')
+    print("Weights saved!")
 
     print("\n--- Generation Test ---")
-    for i in range(150, 155):
+    for i in range(500, 505):
         english = X_train.iloc[i]
         spanish_actual = Y_train.iloc[i]
         source_tokens = tokenizer.encode(english)
