@@ -1,4 +1,6 @@
 import torch
+import sys
+sys.path.append('..')
 from gates import ForgetGate, InputGate, CandidateGate, OutputGate
 from activations import Tanh
 from typing import Tuple, List, Dict
