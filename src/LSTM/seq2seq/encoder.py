@@ -1,6 +1,6 @@
 import torch
 from typing import List, Tuple
-from LSTM.seq2seq.seq2seqcell import S2SCell
+from seq2seqcell import S2SCell
 
 class Encoder:
     def __init__(self, vocab_size: int, embedding_dim: int, hidden_dim: int):

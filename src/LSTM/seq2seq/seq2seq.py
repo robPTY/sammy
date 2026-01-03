@@ -1,9 +1,9 @@
 import torch
 import pandas as pd
 from typing import Tuple, List
-from LSTM.seq2seq.tokenizer import Tokenizer
-from LSTM.seq2seq.encoder import Encoder
-from LSTM.seq2seq.decoder import Decoder
+from tokenizer import Tokenizer
+from encoder import Encoder
+from decoder import Decoder
 
 Sets = Tuple[torch.tensor, torch.tensor, torch.tensor, torch.tensor]
 
