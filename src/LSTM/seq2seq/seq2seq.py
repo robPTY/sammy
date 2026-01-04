@@ -48,7 +48,7 @@ def cross_entropy_loss(logits: torch.tensor, target_tokens: List[int]) -> Tuple[
     return avg_loss, d_logits
 
 def main():
-    VOCAB_SIZE = 300
+    VOCAB_SIZE = 1000
     file_path = "data/eng_to_spa.txt"
     X_train, Y_train, X_test, Y_test = load_dataset(file_path)
     
@@ -57,10 +57,10 @@ def main():
     tokenized_tokens = tokenizer.tokenize(X_train[:5000])
     print(f'Learned {len(tokenizer.merges)} BPE merges')
 
-    encoder = Encoder(vocab_size = VOCAB_SIZE + 2, embedding_dim = 64, hidden_dim = 128)
-    decoder = Decoder(vocab_size = VOCAB_SIZE + 2, embedding_dim = 64, hidden_dim = 128)
+    encoder = Encoder(vocab_size = VOCAB_SIZE + 2, embedding_dim = 128, hidden_dim = 256)
+    decoder = Decoder(vocab_size = VOCAB_SIZE + 2, embedding_dim = 128, hidden_dim = 256)
 
-    NUM_EPOCHS = 50
+    NUM_EPOCHS = 20
     LEARNING_RATE = 0.01
     NUM_TRAIN = len(X_train)
     NUM_VAL = min(500, len(X_test))
