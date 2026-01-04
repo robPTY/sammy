@@ -51,6 +51,8 @@ class Tokenizer:
         merges = {} # (int, int) -> int 
         for i in range(number_of_merges):
             pairs = self.get_pairs(tokens)
+            if not pairs:  # No more pairs to merge
+                break
             top_pair = max(pairs, key=pairs.get)
             tokens = self.merge(tokens, top_pair, i + byte_length)
             merges[top_pair] = i + byte_length
@@ -61,7 +63,7 @@ class Tokenizer:
     
     def decode(self, tokens: List[int]) -> str:
         vocab = self.get_vocab()
-        to_decode = b"".join(vocab[token] for token in tokens if token < 256)
+        to_decode = b"".join(vocab.get(token, b'') for token in tokens if token < self.vocab_size)
         text = to_decode.decode('utf-8', errors="replace")
         return text
     
