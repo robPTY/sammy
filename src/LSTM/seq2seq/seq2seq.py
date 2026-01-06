@@ -52,17 +52,24 @@ def main():
     file_path = "data/eng_to_spa.txt"
     X_train, Y_train, X_test, Y_test = load_dataset(file_path)
     
+    shuffle_idx = torch.randperm(len(X_train)).tolist()
+    X_train = X_train.iloc[shuffle_idx].reset_index(drop=True)
+    Y_train = Y_train.iloc[shuffle_idx].reset_index(drop=True)
+    
     print('Training tokenizer on corpora...')
+    combined_corpus = pd.concat([X_train, Y_train])
     tokenizer = Tokenizer(vocab_size=VOCAB_SIZE)
-    tokenized_tokens = tokenizer.tokenize(X_train[:5000])
+    tokenized_tokens = tokenizer.tokenize(combined_corpus)
     print(f'Learned {len(tokenizer.merges)} BPE merges')
 
-    encoder = Encoder(vocab_size = VOCAB_SIZE + 2, embedding_dim = 128, hidden_dim = 256)
-    decoder = Decoder(vocab_size = VOCAB_SIZE + 2, embedding_dim = 128, hidden_dim = 256)
+    print('Training encoder and decoder...')    
 
-    NUM_EPOCHS = 20
-    LEARNING_RATE = 0.01
-    NUM_TRAIN = len(X_train)
+    encoder = Encoder(vocab_size = VOCAB_SIZE + 2, embedding_dim = 256, hidden_dim = 512)
+    decoder = Decoder(vocab_size = VOCAB_SIZE + 2, embedding_dim = 256, hidden_dim = 512)
+
+    NUM_EPOCHS = 30
+    LEARNING_RATE = 0.005
+    NUM_TRAIN = min(50000, len(X_train))
     NUM_VAL = min(500, len(X_test))
     
     for epoch in range(NUM_EPOCHS):
@@ -77,8 +84,8 @@ def main():
             target_tokens = tokenizer.encode(spanish)
 
             # Forward pass
-            hidden, cell = encoder.encode(source_tokens)
-            logits = decoder.forward(hidden, target_tokens, cell)
+            encoder_outputs, hidden, cell = encoder.encode(source_tokens)
+            logits = decoder.forward(encoder_outputs, hidden, target_tokens, cell)
             
             # Compute loss and gradient
             loss, d_logits = cross_entropy_loss(logits, target_tokens)
@@ -86,7 +93,7 @@ def main():
             
             # Backward passes
             encoder.zero_grad()
-            dcell_state, dhidden_state = decoder.backward(d_logits)
+            dcell_state, dhidden_state = decoder.backward(d_logits, encoder_outputs)
             encoder.backward(dhidden_state, dcell_state)
 
             # SGD step
@@ -112,8 +119,8 @@ def main():
         
         print(f'Epoch {epoch+1}/{NUM_EPOCHS}: train_loss = {train_loss:.4f}, val_loss = {val_loss:.4f}')
 
-    encoder.save_weights('weights/encoder_final.pt')
-    decoder.save_weights('weights/decoder_final.pt')
+    encoder.save_weights('weights/encoder_v2.pt')
+    decoder.save_weights('weights/decoder_v2.pt')
     print("Weights saved!")
 
     print("\n--- Generation Test ---")
