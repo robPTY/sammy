@@ -14,7 +14,8 @@ class Encoder:
         self.states_cache = []
         self.tokens = []
     
-    def encode(self, tokens: List[int]) -> Tuple[torch.tensor, torch.tensor]:
+    def encode(self, tokens: List[int]) -> Tuple[torch.tensor, torch.tensor, torch.tensor]:
+        all_hidden_states = []
         self.states_cache = []
         self.tokens = tokens
         T = len(tokens)
@@ -27,6 +28,7 @@ class Encoder:
             embedded_tokens = self.embedding[token_id].view(1, -1)
             
             Xt, ft, it, ct, ot, tanh_cs, new_cell, new_hidden = self.LSTM_cell.forward(cell_state, hidden_state, embedded_tokens)
+            all_hidden_states.append(new_hidden)
             
             self.states_cache.append({
                 "token_id": token_id,
@@ -38,8 +40,10 @@ class Encoder:
             
             hidden_state = new_hidden
             cell_state = new_cell
+        
+        encoder_outputs = torch.stack(all_hidden_states)
 
-        return hidden_state, cell_state
+        return encoder_outputs, hidden_state, cell_state
         
     def backward(self, dhidden: torch.tensor, dcell: torch.tensor) -> None:
         T = len(self.states_cache)
