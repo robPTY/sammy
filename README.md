@@ -43,3 +43,4 @@ Across this project, I've probably used countless resources, but the most import
 - [Understanding LSTM Networks](https://colah.github.io/posts/2015-08-Understanding-LSTMs/)
 - [2014 Sequence to Sequence Learning with Neural Networks](https://arxiv.org/pdf/1409.3215)
 - [Let's Build the GPT Tokenizer](https://www.youtube.com/watch?v=zduSFxRajkE)
+- [2014 Bahdanau Attention](https://arxiv.org/pdf/1409.0473)
